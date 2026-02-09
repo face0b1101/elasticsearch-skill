@@ -13,4 +13,7 @@ __pycache__/
 # MkDocs build output
 site/
 
+# Release artifacts
+*.zip
+
 .env

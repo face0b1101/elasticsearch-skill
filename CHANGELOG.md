@@ -38,5 +38,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Best practices and tips for working with Elasticsearch
 - Support for both traditional and serverless Elasticsearch deployments
 
-[unreleased]: https://github.com/yourusername/elasticsearch-skill/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/yourusername/elasticsearch-skill/releases/tag/v1.0.0
+[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/face0b1101/elasticsearch-skill/releases/tag/v1.0.0

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Rewrite README to be concise and consistent with skill conventions
+- Add example usage section with natural-language prompt examples
+- Add Claude Desktop installation instructions (zip upload via Settings > Capabilities)
+- Add link to Claude skills documentation
+
 ## [1.0.0] - 2026-02-09
 
 ### Added

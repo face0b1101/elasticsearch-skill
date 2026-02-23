@@ -121,4 +121,4 @@ MCP still makes sense for stateful connections, binary protocols, complex auth f
 
 ## Licence
 
-MIT
+[CC BY 4.0](LICENCE)

@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- LICENCE file (CC BY 4.0)
+- Claude Desktop installation instructions (zip upload via Settings > Capabilities)
+- Example usage section with natural-language prompt examples
+- Link to Claude skills documentation
+
 ### Changed
 
 - Rewrite README to be concise and consistent with skill conventions
-- Add example usage section with natural-language prompt examples
-- Add Claude Desktop installation instructions (zip upload via Settings > Capabilities)
-- Add link to Claude skills documentation
+- Update licence from MIT to CC BY 4.0
 
 ## [1.0.0] - 2026-02-09
 

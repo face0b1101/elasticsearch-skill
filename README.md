@@ -2,8 +2,6 @@
 
 Markdown-based skill that teaches AI coding assistants (Cursor, Claude Code etc.) and desktop apps (Claude Desktop) how to interact with Elasticsearch and Kibana via REST/curl — no SDK or MCP required.
 
-> Comprehensive Elasticsearch skill that teaches AI coding assistants and Claude Desktop how to interact with Elasticsearch clusters via REST APIs.
-
 ## What's in it?
 
 This skill provides AI assistants with expert knowledge of Elasticsearch operations, enabling them to help you query data, manage indices, build aggregations, troubleshoot clusters, and

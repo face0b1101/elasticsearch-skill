@@ -46,6 +46,56 @@ See `docs/BEADS_ISSUE_TRACKER.md` for full guide.
 
 ______________________________________________________________________
 
+## Releasing to GitHub
+
+This project ships as a **zip of user-facing files** attached to a GitHub Release. The zip is built ephemerally — it is never committed to the repo.
+
+### Files included in the release zip
+
+Only these files belong in the zip:
+
+| File           | Purpose                       |
+| -------------- | ----------------------------- |
+| `SKILL.md`     | The skill (core deliverable)  |
+| `references/`  | Deep-dive API reference files |
+| `README.md`    | Installation and usage guide  |
+| `LICENCE`      | CC BY 4.0 licence text        |
+| `CHANGELOG.md` | Release history               |
+
+Do **not** include `AGENTS.md`, dotfiles (`.gitignore`, `.markdownlint.json`), or any other development artefact.
+
+### Release workflow
+
+1. **Update `CHANGELOG.md`** — move items from `[Unreleased]` into a new version heading with today's date. Follow [Keep a Changelog](https://keepachangelog.com/) format.
+
+2. **Commit** the changelog (and any other release-ready changes) with message `release: vX.Y.Z — <summary>`.
+
+3. **Tag** with an annotated tag: `git tag -a vX.Y.Z -m "vX.Y.Z"`.
+
+4. **Push** commit and tag: `git push origin main --tags`.
+
+5. **Build the zip** in `/tmp` (not in the repo):
+
+   ```bash
+   zip -r /tmp/elasticsearch-skill-vX.Y.Z.zip SKILL.md references/ README.md LICENCE CHANGELOG.md
+   ```
+
+6. **Create the GitHub Release** with the zip attached:
+
+   ```bash
+   gh release create vX.Y.Z /tmp/elasticsearch-skill-vX.Y.Z.zip \
+     --title "vX.Y.Z" \
+     --notes "<release notes from CHANGELOG>"
+   ```
+
+### Important notes
+
+- The `releases/latest` URL in `README.md` resolves automatically — no need to update it.
+- GitHub adds "Source code" archives to every release by default; these cannot be removed. The uploaded zip is the intended download for end users.
+- Use [Semantic Versioning](https://semver.org/): bump **minor** for new API coverage or features, **patch** for fixes or doc corrections.
+
+______________________________________________________________________
+
 ## Project Planning & Tracking (if `.specify/` exists)
 
 This project can use [speckit](https://speckit.org) for AI-powered specification-driven development.

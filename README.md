@@ -24,6 +24,20 @@ work with Kibana—all through curl-based REST API commands.
 
 The main `SKILL.md` covers day-to-day operations. Reference files load on demand when the LLM needs deeper detail.
 
+## What you can do
+
+- **Search** — full-text, bool, term, range, nested, geo, and wildcard queries via Query DSL
+- **Document CRUD** — index, get, update, delete, and bulk operations
+- **Aggregations** — terms, date histograms, metrics, percentiles, pipeline aggs, SRE patterns
+- **Index management** — create, delete, mappings, aliases, templates, reindex
+- **Cluster ops** — health checks, node stats, shard allocation, troubleshooting
+- **Data streams and ILM** — lifecycle policies, rollover, hot/warm/delete tiers
+- **ES|QL** — pipe-based query language for Elasticsearch 8.11+
+- **Ingest pipelines** — grok, date parsing, enrichment processors
+- **Kibana API** — dashboards, data views, saved objects
+- **Agent Builder** — Kibana AI agents that query data via natural language
+- **OpenTelemetry** — query patterns for OTel logs, traces, and metrics
+
 ## Configuration
 
 Set your cluster credentials as environment variables before starting your assistant:

@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-02-23
+
 ### Added
 
 - LICENCE file (CC BY 4.0)
+- "What you can do" capabilities overview in README
 - Claude Desktop installation instructions (zip upload via Settings > Capabilities)
 - Example usage section with natural-language prompt examples
 - Link to Claude skills documentation
@@ -50,5 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Best practices and tips for working with Elasticsearch
 - Support for both traditional and serverless Elasticsearch deployments
 
-[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.0.0...HEAD
+[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/face0b1101/elasticsearch-skill/releases/tag/v1.0.0

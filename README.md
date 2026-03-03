@@ -20,6 +20,7 @@ work with Kibana—all through curl-based REST API commands.
 | `references/CLUSTER-API.MD`      | Cluster health, node stats, shard allocation                                                  |
 | `references/KIBANA-API.MD`       | Dashboards, data views, saved objects                                                         |
 | `references/AGENT-BUILDER.MD`    | Kibana Agent Builder integration                                                              |
+| `references/WORKFLOWS.MD`        | Workflows — YAML structure, triggers, steps, recipes                                          |
 | `references/OTEL-DATA.MD`        | OpenTelemetry data patterns in Elasticsearch                                                  |
 
 The main `SKILL.md` covers day-to-day operations. Reference files load on demand when the LLM needs deeper detail.
@@ -36,6 +37,7 @@ The main `SKILL.md` covers day-to-day operations. Reference files load on demand
 - **Ingest pipelines** — grok, date parsing, enrichment processors
 - **Kibana API** — dashboards, data views, saved objects
 - **Agent Builder** — Kibana AI agents that query data via natural language
+- **Workflows** — automated sequences in Kibana triggered manually, on schedule, or by alerts
 - **OpenTelemetry** — query patterns for OTel logs, traces, and metrics
 
 ## Configuration
@@ -65,6 +67,8 @@ Once configured, just ask your assistant in natural language:
 - "Build a date histogram of orders per day for the last 30 days"
 - "Why are there unassigned shards in my cluster?"
 - "Set up an ILM policy that rolls over at 50 GB and deletes after 90 days"
+- "Build a workflow that enriches alerts with recent error context and posts to Slack"
+- "Create a scheduled workflow to delete staging indices older than 30 days"
 
 The assistant reads the skill, writes the `curl` commands, runs them, and explains the results.
 

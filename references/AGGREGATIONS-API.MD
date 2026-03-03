@@ -156,7 +156,7 @@ Compute on other aggregation results:
 }
 ```
 
-**Moving average**:
+**Moving function** (replaces `moving_avg`, which was removed in 9.0):
 
 ```json
 {
@@ -166,7 +166,7 @@ Compute on other aggregation results:
       "aggs": {
         "daily_errors": {"value_count": {"field": "_id"}},
         "smoothed": {
-          "moving_avg": {"buckets_path": "daily_errors", "window": 7}
+          "moving_fn": {"buckets_path": "daily_errors", "window": 7, "script": "MovingFunctions.unweightedAvg(values)"}
         }
       }
     }

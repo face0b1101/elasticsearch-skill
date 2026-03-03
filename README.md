@@ -32,7 +32,7 @@ The main `SKILL.md` covers day-to-day operations. Reference files load on demand
 - **Index management** — create, delete, mappings, aliases, templates, reindex
 - **Cluster ops** — health checks, node stats, shard allocation, troubleshooting
 - **Data streams and ILM** — lifecycle policies, rollover, hot/warm/delete tiers
-- **ES|QL** — pipe-based query language for Elasticsearch 8.11+
+- **ES|QL** — pipe-based query language with joins, inline stats, change-point detection, and more
 - **Ingest pipelines** — grok, date parsing, enrichment processors
 - **Kibana API** — dashboards, data views, saved objects
 - **Agent Builder** — Kibana AI agents that query data via natural language

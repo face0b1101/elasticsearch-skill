@@ -2,10 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+From v9.3.1 onwards, version numbers track the Elastic Stack version the skill is tested
+against. Prior releases (1.0.0, 1.1.0) used independent semantic versioning.
 
 ## [Unreleased]
+
+## [9.3.1] - 2026-03-03
+
+### Changed
+
+- **Versioning:** Switched from independent semver to Elastic Stack version alignment. Version numbers now track the Stack version the skill is tested against.
+- Replace removed `moving_avg` aggregation with `moving_fn` in AGGREGATIONS-API.MD and AGGREGATIONS.MD (removed in ES 9.0)
+- Remove Kibana saved object CRUD endpoints from KIBANA-API.MD (removed in Kibana 9.0); only `_import`/`_export` remain
+- Rewrite ES|QL section with 9.x features: LOOKUP JOIN (GA 9.1), INLINE STATS (GA 9.3), CHANGE_POINT (GA 9.2)
+- Rename "Data Streams & ILM" section to "Data Streams & Lifecycle" and add data stream lifecycle as the newer alternative to ILM
+- Add `_cluster/reroute` response change note in CLUSTER-API.MD (no longer returns cluster state in 9.0)
+- Update README ES|QL description to reference 9.x
+
+### Added
+
+- `Tested against: Elastic Stack 9.3.1` version indicator in SKILL.md
+- Agent Builder GA status note (GA since 9.3) in AGENT-BUILDER.MD
+- Data stream lifecycle examples (`_data_stream/<name>/_lifecycle`) in SKILL.md
+- ES|QL examples for LOOKUP JOIN, INLINE STATS, and CHANGE_POINT commands
+- "Reviewing Against a New Stack Version" process documentation in AGENTS.md
+- Stack-aligned versioning scheme documentation in AGENTS.md
 
 ## [1.1.0] - 2026-02-23
 
@@ -53,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Best practices and tips for working with Elasticsearch
 - Support for both traditional and serverless Elasticsearch deployments
 
-[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.1.0...HEAD
+[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1...HEAD
+[9.3.1]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.1.0...v9.3.1
 [1.1.0]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/face0b1101/elasticsearch-skill/releases/tag/v1.0.0

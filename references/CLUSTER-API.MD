@@ -74,7 +74,7 @@ es "_cluster/allocation/explain" -XPOST -d '{
   "primary": true
 }'
 
-# Reroute a shard manually
+# Reroute a shard manually (9.0+: response no longer includes cluster state)
 es "_cluster/reroute" -XPOST -d '{
   "commands": [
     {"allocate_replica": {"index": "my-index", "shard": 0, "node": "node-2"}}

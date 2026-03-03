@@ -11,6 +11,8 @@ description: >-
 
 # Elasticsearch
 
+> **Tested against: Elastic Stack 9.3.1**
+
 All Elasticsearch interaction is via REST API using `curl`. No SDK or client library required.
 
 ## Authentication
@@ -265,9 +267,9 @@ curl -s "${ES_URL%/}/_cluster/settings?include_defaults=false" \
 
 For Kibana API operations (dashboards, data views, saved objects, alerting rules), see [references/KIBANA-API.MD](references/KIBANA-API.MD).
 
-## Data Streams & ILM
+## Data Streams & Lifecycle
 
-> **Note:** ILM APIs (`_ilm/*`) are **not available on serverless**. Data stream listing works on both.
+> **Note:** ILM APIs (`_ilm/*`) are **not available on serverless**. Data stream listing and data stream lifecycle work on both.
 
 ```bash
 # List data streams
@@ -291,18 +293,61 @@ curl -s -X PUT "${ES_URL%/}/_ilm/policy/my-policy" \
 curl -s "${ES_URL%/}/my-index/_ilm/explain" -H "Authorization: ApiKey $(printenv ES_API_KEY)" | jq .
 ```
 
-## ES|QL (Elasticsearch Query Language)
-
-For Elasticsearch 8.11+, ES|QL offers a pipe-based query syntax:
+**Data stream lifecycle** is the newer built-in alternative to ILM for data streams. It handles rollover and retention automatically with simpler configuration:
 
 ```bash
+# Set retention on a data stream (auto-rollover, delete after 90 days)
+curl -s -X PUT "${ES_URL%/}/_data_stream/logs-my-app/_lifecycle" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
+  -H "Content-Type: application/json" \
+  -d '{ "data_retention": "90d" }'
+
+# Check lifecycle status
+curl -s "${ES_URL%/}/_data_stream/logs-my-app/_lifecycle" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" | jq .
+```
+
+ILM remains available for index-level policies and complex multi-phase workflows. For simple retention on data streams, prefer data stream lifecycle.
+
+## ES|QL (Elasticsearch Query Language)
+
+ES|QL offers a pipe-based query syntax. It has been significantly expanded in 9.x with joins, inline aggregations, change-point detection, and hybrid search commands.
+
+```bash
+# Basic ES|QL query
 curl -s -X POST "${ES_URL%/}/_query" \
   -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "FROM logs-* | WHERE level == \"error\" | STATS count = COUNT(*) BY service.name | SORT count DESC | LIMIT 10"
   }' | jq .
+
+# LOOKUP JOIN — enrich results from a lookup index (GA since 9.1)
+curl -s -X POST "${ES_URL%/}/_query" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "FROM logs-* | LOOKUP JOIN service_owners ON service.name | STATS count = COUNT(*) BY owner | SORT count DESC"
+  }' | jq .
+
+# INLINE STATS — add aggregation columns without collapsing rows (GA since 9.3)
+curl -s -X POST "${ES_URL%/}/_query" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "FROM logs-* | INLINE STATS avg_duration = AVG(duration) BY service.name | WHERE duration > avg_duration * 2"
+  }' | jq .
+
+# CHANGE_POINT — detect anomalies in time-series data (GA since 9.2)
+curl -s -X POST "${ES_URL%/}/_query" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "FROM metrics-* | STATS avg_cpu = AVG(system.cpu.percent) BY @timestamp = BUCKET(@timestamp, 1h) | CHANGE_POINT avg_cpu ON @timestamp"
+  }' | jq .
 ```
+
+Other notable ES|QL commands in 9.x: `COMPLETION` (LLM completion, GA 9.3), `FORK`/`FUSE` (hybrid search branches, preview), `SAMPLE` (random sampling, preview), `RERANK` (semantic reranking, preview).
 
 For querying OpenTelemetry data (OTEL logs, traces, metrics, correlation patterns), see [references/OTEL-DATA.MD](references/OTEL-DATA.MD).
 

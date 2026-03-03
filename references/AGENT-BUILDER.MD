@@ -1,6 +1,6 @@
 # Agent Builder (Kibana AI)
 
-Agent Builder is a Kibana feature for creating custom AI agents that can query and interact with your Elasticsearch data. Agents can use tools (ES|QL queries, index searches, platform tools) to answer questions and perform tasks.
+Agent Builder is a Kibana feature (GA since 9.3) for creating custom AI agents that can query and interact with your Elasticsearch data. Agents can use tools (ES|QL queries, index searches, platform tools) to answer questions and perform tasks.
 
 ## Prerequisites
 

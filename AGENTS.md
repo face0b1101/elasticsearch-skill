@@ -88,7 +88,45 @@ Do **not** include `AGENTS.md`, dotfiles (`.gitignore`, `.markdownlint.json`), o
 
 - The `releases/latest` URL in `README.md` resolves automatically — no need to update it.
 - GitHub adds "Source code" archives to every release by default; these cannot be removed. The uploaded zip is the intended download for end users.
-- Use [Semantic Versioning](https://semver.org/): bump **minor** for new API coverage or features, **patch** for fixes or doc corrections.
+- Version numbers track the Elastic Stack version the skill is tested against (e.g. `v9.3.1` means tested against Elastic Stack 9.3.1). Skill-only fixes for the same stack version append a suffix (e.g. `v9.3.1-1`). Prior releases used independent semantic versioning (v1.0.0, v1.1.0).
+
+______________________________________________________________________
+
+## Reviewing Against a New Stack Version
+
+When a new Elastic Stack version is released, follow this process to check and update the skill.
+
+### 1. Gather breaking changes
+
+- Fetch the Elastic breaking changes page for the target version range: `elastic.co/docs/release-notes/elasticsearch/breaking-changes`
+- Search for breaking changes affecting: REST API endpoints, Query DSL, aggregations, ingest processors, mapping definitions, cluster APIs, ES|QL syntax, and Kibana APIs
+- Note which changes are **removals** (will cause errors) vs **behavioural** (may cause unexpected results)
+
+### 2. Audit skill content against breaking changes
+
+- Read `SKILL.md` and every file in `references/`
+- For each breaking change, search the skill files for affected API endpoints, parameter names, or feature names
+- Categorise findings:
+  - **Critical** — code examples that would fail against the new version
+  - **Important** — accuracy or completeness issues
+  - **No change needed** — skill already uses the current syntax
+
+### 3. Research new features
+
+- Check release notes and blogs for each minor version in the range (e.g. 9.0, 9.1, 9.2, 9.3)
+- Focus on: new ES|QL commands reaching GA, new REST APIs, features moving from preview to GA, new Kibana APIs
+- Decide which are significant enough to add to the skill (GA features that users would commonly need)
+
+### 4. Apply updates
+
+- Fix critical issues first (broken examples)
+- Update version references and accuracy issues
+- Add new feature coverage where warranted
+- Update the `Tested against` line in `SKILL.md`
+
+### 5. Release
+
+- Follow the release workflow above with the new stack-aligned version number
 
 ______________________________________________________________________
 

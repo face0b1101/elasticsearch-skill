@@ -244,7 +244,7 @@ Limit analysis to top N scoring docs (performance optimization):
 
 Operate on output of other aggregations.
 
-### moving_avg / moving_fn
+### moving_fn
 
 ```json
 {

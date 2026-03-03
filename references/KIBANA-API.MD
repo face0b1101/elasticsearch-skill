@@ -74,39 +74,11 @@ curl -s -X DELETE "$KIBANA_URL/api/data_views/data_view/my-logs-view" \
 
 ## Saved Objects
 
-Saved objects are Kibana's storage model — dashboards, visualizations, data views, searches, etc.
+Saved objects are Kibana's storage model -- dashboards, visualizations, data views, searches, etc.
 
-```bash
-# Get a saved object — NOT available on serverless
-curl -s "$KIBANA_URL/api/saved_objects/dashboard/my-dashboard-id" \
-  -H "Authorization: ApiKey $ES_API_KEY" | jq .
-
-# Find saved objects by type — NOT available on serverless
-curl -s "$KIBANA_URL/api/saved_objects/_find?type=dashboard&per_page=100" \
-  -H "Authorization: ApiKey $ES_API_KEY" | jq '.saved_objects[] | {id, title: .attributes.title}'
-
-# Bulk create (with overwrite) — NOT available on serverless
-curl -s -X POST "$KIBANA_URL/api/saved_objects/_bulk_create?overwrite=true" \
-  -H "Authorization: ApiKey $ES_API_KEY" \
-  -H "kbn-xsrf: true" \
-  -H "Content-Type: application/json" \
-  -d '[
-    {
-      "type": "dashboard",
-      "id": "my-dashboard",
-      "attributes": { "title": "My Dashboard" }
-    }
-  ]'
-
-# Delete saved object — NOT available on serverless
-curl -s -X DELETE "$KIBANA_URL/api/saved_objects/dashboard/my-dashboard-id" \
-  -H "Authorization: ApiKey $ES_API_KEY" \
-  -H "kbn-xsrf: true"
-```
+**Kibana 9.0 removed** the individual CRUD endpoints (`GET`, `_find`, `_bulk_create`, `DELETE`) for saved objects. Only `_import`, `_export`, and `_resolve_import_errors` remain as public APIs. Use `_import` with `overwrite=true` for create/update operations.
 
 Saved object types: `dashboard`, `visualization`, `lens`, `search`, `index-pattern`, `map`, `tag`.
-
-**Serverless Kibana:** On Elastic Cloud Serverless, only `_import` and `_export` are available for saved objects. The `_find`, `_bulk_create`, individual GET, and DELETE endpoints all return `400 Bad Request`. Use `_import?overwrite=true` for create/update operations.
 
 ## Dashboard Import / Export
 

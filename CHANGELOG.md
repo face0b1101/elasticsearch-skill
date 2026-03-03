@@ -9,6 +9,14 @@ against. Prior releases (1.0.0, 1.1.0) used independent semantic versioning.
 
 ## [Unreleased]
 
+## [9.3.1-1] - 2026-03-03
+
+### Added
+
+- Workflows (Kibana Automation) reference: YAML structure, triggers, step types, data/templating, error handling, and ready-to-use recipes (`references/WORKFLOWS.MD`)
+- Workflows section in SKILL.md with overview and link to reference
+- "Workflows (Kibana automation)" added to skill description
+
 ## [9.3.1] - 2026-03-03
 
 ### Changed
@@ -76,7 +84,8 @@ against. Prior releases (1.0.0, 1.1.0) used independent semantic versioning.
 - Best practices and tips for working with Elasticsearch
 - Support for both traditional and serverless Elasticsearch deployments
 
-[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1...HEAD
+[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-1...HEAD
+[9.3.1-1]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1...v9.3.1-1
 [9.3.1]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.1.0...v9.3.1
 [1.1.0]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/face0b1101/elasticsearch-skill/releases/tag/v1.0.0

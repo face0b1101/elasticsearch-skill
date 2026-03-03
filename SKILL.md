@@ -5,8 +5,8 @@ description: >-
   managing indices, checking cluster health, writing aggregations, deploying dashboards, or
   troubleshooting Elasticsearch. Requires cluster URL and API key. Covers: search (Query DSL),
   CRUD operations, index management, mappings, aggregations, cluster health, ILM, ES|QL,
-  Kibana API (dashboards, data views, saved objects, Agent Builder), OpenTelemetry data patterns,
-  and common troubleshooting patterns.
+  Kibana API (dashboards, data views, saved objects, Agent Builder), Workflows (Kibana automation),
+  OpenTelemetry data patterns, and common troubleshooting patterns.
 ---
 
 # Elasticsearch
@@ -356,6 +356,14 @@ For querying OpenTelemetry data (OTEL logs, traces, metrics, correlation pattern
 For building and managing AI agents that can query your Elasticsearch data, see [references/AGENT-BUILDER.MD](references/AGENT-BUILDER.MD).
 
 Agents can use ES|QL tools, search indices, and execute custom queries via natural language interfaces.
+
+## Workflows (Kibana Automation)
+
+> **Preview** — available since Stack 9.3 and on Serverless. No public REST API yet; workflows are authored in YAML via Kibana's built-in editor (Analytics > Workflows).
+
+Workflows automate sequences of steps triggered manually, on a schedule, or by alert rules. They can search Elasticsearch, call Kibana and external APIs, send Slack/Jira notifications, branch with `if`/`foreach`, and invoke AI prompts or Agent Builder agents.
+
+For the full YAML reference (structure, triggers, step types, data/templating, error handling, and ready-to-use recipes), see [references/WORKFLOWS.MD](references/WORKFLOWS.MD).
 
 ## Ingest Pipelines
 

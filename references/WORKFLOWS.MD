@@ -1,6 +1,6 @@
 # Workflows (Kibana Automation)
 
-Workflows is a Kibana feature (Preview since Stack 9.3, Preview on Serverless) for building automated sequences that turn data insights into actions. Workflows are defined in YAML and authored in Kibana's built-in editor — there is no REST API for managing workflows yet.
+Workflows is a Kibana feature (Preview since Stack 9.3, Preview on Serverless) for building automated sequences that turn data insights into actions. Workflows are defined in YAML and can be authored in Kibana's built-in editor or managed programmatically via the REST API.
 
 **Location:** Kibana > Analytics > Workflows
 
@@ -10,6 +10,83 @@ Workflows is a Kibana feature (Preview since Stack 9.3, Preview on Serverless) f
 - Feature flag enabled: `workflows:ui:enabled`
 - For AI steps: an LLM connector configured in Kibana (OpenAI, Gemini, etc.)
 - For external steps (Slack, Jira): the relevant Kibana connector configured
+
+## REST API
+
+While Workflows is in **Technical Preview**, all API requests require an additional header:
+
+```
+x-elastic-internal-origin: kibana
+```
+
+Without this header, every endpoint returns `400 "exists but is not available with the current configuration"`.
+
+### Required Headers (All Requests)
+
+```bash
+curl -s "${KIBANA_URL%/}/api/workflows/<endpoint>" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
+  -H "Content-Type: application/json" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana"
+```
+
+### Workflow CRUD
+
+| Method | Endpoint | Body | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/api/workflows` | `{yaml: "..."}` | Create workflow |
+| `PUT` | `/api/workflows/{id}` | `{yaml: "..."}` or `{name: "..."}` | Update workflow |
+| `GET` | `/api/workflows/{id}` | — | Get workflow by ID |
+| `DELETE` | `/api/workflows/{id}` | — | Delete workflow |
+| `DELETE` | `/api/workflows` | `{ids: [...]}` | Bulk delete |
+| `POST` | `/api/workflows/search` | `{limit, page, query, enabled}` | Search/list workflows |
+| `POST` | `/api/workflows/{id}/clone` | — | Clone workflow |
+
+### Execution
+
+| Method | Endpoint | Body | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/api/workflows/{id}/run` | `{inputs: {...}}` | Run workflow (returns `{workflowExecutionId}`) |
+| `GET` | `/api/workflowExecutions/{execId}` | — | Execution details (status, steps, duration) |
+| `GET` | `/api/workflowExecutions/{execId}/logs` | — | Execution logs |
+| `POST` | `/api/workflowExecutions/{execId}/cancel` | — | Cancel execution |
+
+### Statistics & Validation
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/workflows/stats` | Workflow counts + execution history |
+| `GET` | `/api/workflows/workflow-json-schema?loose=false` | YAML validation schema |
+| `GET` | `/api/workflows/connectors` | Available connector types |
+
+### Create Example
+
+```bash
+curl -s -X POST "${KIBANA_URL%/}/api/workflows" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
+  -H "Content-Type: application/json" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
+  -d '{"yaml": "name: My Workflow\nenabled: true\ntriggers:\n  - type: manual\nsteps:\n  - name: hello\n    type: console\n    with:\n      message: hello world\n"}'
+```
+
+Response includes `id`, `name`, `enabled`, `valid`, and `definition`.
+
+### Run Example
+
+```bash
+curl -s -X POST "${KIBANA_URL%/}/api/workflows/${WF_ID}/run" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
+  -H "Content-Type: application/json" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
+  -d '{"inputs": {"query": "error"}}'
+```
+
+### API Naming Gotcha
+
+The `name` field in the workflow's top-level API representation comes from parsing the YAML. If the YAML fails validation (`valid: false`), the name cannot be extracted and the workflow appears as "Untitled workflow". To set the name explicitly, send a follow-up `PUT` with only `{"name": "My Workflow"}` (no `yaml` key) — the API ignores `name` when `yaml` is present in the same request body.
 
 ## YAML Structure
 
@@ -67,7 +144,7 @@ Every workflow needs at least one trigger. Multiple triggers of different types 
 
 ### Manual
 
-Run on demand from the Kibana UI or (in future) via API.
+Run on demand from the Kibana UI or via the REST API (`POST /api/workflows/{id}/run`).
 
 ```yaml
 triggers:
@@ -86,6 +163,22 @@ triggers:
       every: 5m
 
 # Other interval examples: 30s, 1h, 1d
+```
+
+**rrule** — for cron-like schedules with timezone support:
+
+```yaml
+# Every weekday at 09:00 London time
+triggers:
+  - type: scheduled
+    with:
+      rrule:
+        freq: DAILY
+        interval: 1
+        tzid: Europe/London
+        byhour: [9]
+        byminute: [0]
+        byday: [MO, TU, WE, TH, FR]
 ```
 
 ### Alert
@@ -131,8 +224,31 @@ Steps are the individual units of logic. Each step has `name`, `type`, and usual
                 gte: "now-24h"
     size: 50
     sort:
-      - "@timestamp":
-          order: desc
+      - "@timestamp"
+```
+
+> **Sort limitation:** `elasticsearch.search` only accepts simple string sort values (e.g. `- "@timestamp"`). The object form (`- "@timestamp": {order: desc}`) silently causes `valid: false`. Ascending is the default; for descending or complex sort, use `elasticsearch.request` instead:
+
+```yaml
+- name: find_latest_errors
+  type: elasticsearch.request
+  with:
+    method: POST
+    path: "/logs-*/_search"
+    body:
+      query:
+        bool:
+          must:
+            - match:
+                level: "error"
+          filter:
+            - range:
+                "@timestamp":
+                  gte: "now-24h"
+      size: 50
+      sort:
+        - "@timestamp":
+            order: desc
 ```
 
 **`elasticsearch.update`** — update a document by ID:
@@ -191,16 +307,28 @@ Steps are the individual units of logic. Each step has `name`, `type`, and usual
 
 ### Kibana
 
-**`kibana.createCaseDefaultSpace`** — create a security case:
+**`kibana.createCase`** — create a Kibana case:
 
 ```yaml
 - name: open_case
-  type: kibana.createCaseDefaultSpace
+  type: kibana.createCase
   with:
+    owner: securitySolution
+    connector:
+      id: "none"
+      name: "none"
+      type: ".none"
+      fields: null
+    settings:
+      syncAlerts: true
     title: "Alert: {{ event.rule.name }}"
     description: "Auto-created from workflow. Severity: {{ event.severity }}"
     tags: ["auto-created", "{{ event.rule.category }}"]
 ```
+
+Required fields: `owner` (`"cases"` | `"observability"` | `"securitySolution"`), `connector`, `settings`, `title`, `description`, `tags`. Use `connector.id: "none"` to create a case without an external connector.
+
+**`kibana.updateCase`** — update an existing case (status, tags, assignees, etc.). Takes the same fields as the [Update case API](https://www.elastic.co/docs/api/doc/kibana/v9/operation/operation-updatecase).
 
 **`kibana.request`** — arbitrary Kibana API call (`kbn-xsrf` and `Content-Type` added automatically):
 
@@ -352,9 +480,39 @@ Steps are the individual units of logic. Each step has `name`, `type`, and usual
 - name: ask_agent
   type: ai.agent
   with:
-    agentId: "data-analyst-agent"
-    input: "Summarise the top error patterns in the last hour from logs-*"
+    agent_id: "data-analyst-agent"
+    message: "Summarise the top error patterns in the last hour from logs-*"
 ```
+
+The agent's response is available as **free text** at `steps.NAME.output.message`. There is no `outputSchema` support for `ai.agent` (unlike `ai.prompt`). For downstream routing based on agent output, instruct the agent to include a parseable marker in its response and use the `contains` operator:
+
+```yaml
+- name: route_verdict
+  type: if
+  condition: "{{ steps.ask_agent.output.message contains '[CRITICAL]' }}"
+  steps:
+    - name: escalate
+      type: slack
+      connector-id: "slack-urgent"
+      with:
+        message: "{{ steps.ask_agent.output.message }}"
+```
+
+## Step Output Paths
+
+Different step types expose their output at different paths. Getting this wrong is the most common cause of "workflow succeeded but returned null".
+
+| Step Type | Output Root | Common Paths |
+| --- | --- | --- |
+| `elasticsearch.search` | `steps.NAME.output` | `.output.hits.hits`, `.output.hits.total.value` |
+| `elasticsearch.request` | `steps.NAME.output` | `.output.hits.hits`, `.output.aggregations` |
+| `http` | `steps.NAME.output.data` | `.output.data.results`, `.output.data.field` |
+| `kibana.request` | `steps.NAME.output` | `.output.cases`, `.output.total` |
+| `kibana.createCase` | `steps.NAME.output` | `.output.id`, `.output.version` |
+| `ai.prompt` + `outputSchema` | `steps.NAME.output` | `.output.<field>` (structured per schema) |
+| `ai.agent` | `steps.NAME.output.message` | Free text only (string) |
+
+> Both `elasticsearch.search` and `elasticsearch.request` expose the ES response body directly at `.output`. The output structure is identical — the difference is that `elasticsearch.search` has stricter parameter validation (e.g. sort syntax) while `elasticsearch.request` passes the body through verbatim.
 
 ## Data and Templating
 
@@ -396,6 +554,36 @@ Templates support [Liquid](https://shopify.github.io/liquid/) filters:
 message: "{{ event.rule.name | upcase }}"
 details: "{{ event | json:2 }}"
 ```
+
+### Workflow Output
+
+Workflows can define a top-level `output` section to control what data they return. This is especially important for **workflow-as-tool** patterns where an Agent Builder agent invokes the workflow and receives the output:
+
+```yaml
+name: Enrich Data
+enabled: true
+triggers:
+  - type: manual
+inputs:
+  - name: query
+    type: string
+    required: true
+steps:
+  - name: search
+    type: elasticsearch.search
+    with:
+      index: "my-index"
+      query:
+        match:
+          content: "{{ inputs.query }}"
+      size: 5
+
+output:
+  total: "{{ steps.search.output.hits.total.value }}"
+  results: "${{ steps.search.output.hits.hits }}"
+```
+
+Without an `output` section, the agent receives all step outputs. With one, you control exactly what the agent sees.
 
 ## Error Handling
 
@@ -502,24 +690,26 @@ triggers:
 
 steps:
   - name: search_context
-    type: elasticsearch.search
+    type: elasticsearch.request
     with:
-      index: "logs-*"
-      query:
-        bool:
-          must:
-            - match:
-                service.name: "{{ event.service.name }}"
-          filter:
-            - range:
-                "@timestamp":
-                  gte: "{{ consts.lookbackWindow }}"
-            - term:
-                level: "error"
-      size: 5
-      sort:
-        - "@timestamp":
-            order: desc
+      method: POST
+      path: "/logs-*/_search"
+      body:
+        query:
+          bool:
+            must:
+              - match:
+                  service.name: "{{ event.service.name }}"
+            filter:
+              - range:
+                  "@timestamp":
+                    gte: "{{ consts.lookbackWindow }}"
+              - term:
+                  level: "error"
+        size: 5
+        sort:
+          - "@timestamp":
+              order: desc
 
   - name: notify_ops
     type: slack
@@ -695,6 +885,8 @@ steps:
 - **Test individual steps** using the "Run step" button in the Kibana editor before running the full workflow.
 - **Error handling defaults:** set `settings.on-failure` at the workflow level for sensible defaults, then override on critical steps that need stricter retry policies.
 - **Connector names or IDs:** `connector-id` accepts either the connector UUID or its display name from Kibana's Connectors page.
+- **Silent validation failures:** workflows with invalid YAML deploy as `valid: false`, `enabled: false`, `name: "Untitled workflow"` with no error message. Always verify `valid: true` via `GET /api/workflows/{id}` after creation. Common causes: object-form sort in `elasticsearch.search`, use of `kibana.createCaseDefaultSpace` (use `kibana.createCase` instead).
+- **`elasticsearch.search` vs `elasticsearch.request`:** prefer `elasticsearch.search` for simple queries (cleaner syntax, less nesting). Switch to `elasticsearch.request` when you need descending sort, complex sort expressions, or any ES API parameter that `elasticsearch.search` doesn't expose.
 
 ## Reference
 

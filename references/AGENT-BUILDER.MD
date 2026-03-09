@@ -104,6 +104,30 @@ curl -s -X POST "${KIBANA_URL%/}/api/agent_builder/tools" \
   }' | jq .
 ```
 
+### Create a Tool (Workflow Type)
+
+Register a Kibana Workflow as a tool so agents can trigger it during conversations:
+
+```bash
+curl -s -X POST "${KIBANA_URL%/}/api/agent_builder/tools" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
+  -H "kbn-xsrf: true" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "enrich-flight-data",
+    "type": "workflow",
+    "description": "Gather enrichment data for a flight investigation. Call this when the user asks about a specific aircraft by ICAO hex address.",
+    "tags": ["enrichment", "flights"],
+    "configuration": {
+      "workflow_id": "workflow-abc123-your-workflow-id"
+    }
+  }' | jq .
+```
+
+The `description` tells the agent *when* to call the tool — be specific about trigger conditions. A vague description leads to the agent calling the tool at wrong times or not at all.
+
+The workflow must exist and be `valid: true` before registering it as a tool. Workflow inputs become the tool's parameters automatically.
+
 ### Get Tool by ID
 
 ```bash
@@ -330,6 +354,7 @@ Agent Builder provides several built-in tools that agents can use:
 - `platform.core.execute_esql` - Execute ES|QL queries
 - `platform.core.generate_esql` - Generate ES|QL from natural language
 - `platform.core.index_explorer` - Explore index patterns and metadata
+- `platform.core.get_workflow_execution_status` - Poll status of an async workflow execution (use with workflow tools)
 
 Reference these by `tool_ids` when creating agents.
 
@@ -348,6 +373,12 @@ Reference these by `tool_ids` when creating agents.
 - Include relevant context about data structure and naming conventions
 - Assign appropriate tools based on the agent's purpose
 - Use meaningful avatar colors and symbols for visual identification
+
+**Workflow Tools:**
+
+- When an `ai.agent` step invokes an agent from a workflow, the agent's full response is free text at `steps.NAME.output.message` — there is no structured JSON output. Use text markers and the `contains` operator in workflow `if` conditions for routing.
+- Long-running workflows execute asynchronously. Include `platform.core.get_workflow_execution_status` in the agent's tools so it can poll for completion and report progress.
+- Workflow inputs become the tool's parameters. The agent sees the workflow's `output` section (or all step outputs if no `output` is defined).
 
 **Error Handling:**
 

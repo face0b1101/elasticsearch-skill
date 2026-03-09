@@ -9,6 +9,27 @@ against. Prior releases (1.0.0, 1.1.0) used independent semantic versioning.
 
 ## [Unreleased]
 
+## [9.3.1-2] - 2026-03-09
+
+### Added
+
+- Workflows REST API reference: full CRUD, execution, stats, validation endpoints with `x-elastic-internal-origin: kibana` header requirement
+- Workflows `rrule` scheduled trigger syntax (cron-like with timezone support)
+- Step Output Paths table documenting output root and common paths per step type
+- Workflow Output section (`output:` top-level key) for controlling data returned to callers
+- Agent Builder workflow tool type (`type: workflow`) for invoking workflows from agents
+- `platform.core.get_workflow_execution_status` built-in tool in Agent Builder
+- Workflow tools best practices in Agent Builder reference
+
+### Changed
+
+- Corrected `kibana.createCaseDefaultSpace` to `kibana.createCase` with required fields (`owner`, `connector`, `settings`)
+- Corrected `ai.agent` fields from `agentId`/`input` to `agent_id`/`message`
+- Documented `elasticsearch.search` sort limitation (string-only; object form causes silent `valid: false`)
+- Updated alert enrichment recipe to use `elasticsearch.request` for descending sort
+- Added agent output routing pattern for `ai.agent` (free-text output, `contains` operator)
+- Updated SKILL.md Workflows section to reference REST API availability
+
 ## [9.3.1-1] - 2026-03-03
 
 ### Added
@@ -84,7 +105,8 @@ against. Prior releases (1.0.0, 1.1.0) used independent semantic versioning.
 - Best practices and tips for working with Elasticsearch
 - Support for both traditional and serverless Elasticsearch deployments
 
-[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-1...HEAD
+[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-2...HEAD
+[9.3.1-2]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-1...v9.3.1-2
 [9.3.1-1]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1...v9.3.1-1
 [9.3.1]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.1.0...v9.3.1
 [1.1.0]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.0.0...v1.1.0

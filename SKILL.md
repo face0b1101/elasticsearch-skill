@@ -355,15 +355,15 @@ For querying OpenTelemetry data (OTEL logs, traces, metrics, correlation pattern
 
 For building and managing AI agents that can query your Elasticsearch data, see [references/AGENT-BUILDER.MD](references/AGENT-BUILDER.MD).
 
-Agents can use ES|QL tools, search indices, and execute custom queries via natural language interfaces.
+Agents can use ES|QL tools, search indices, execute custom queries, and invoke workflows via natural language interfaces.
 
 ## Workflows (Kibana Automation)
 
-> **Preview** — available since Stack 9.3 and on Serverless. No public REST API yet; workflows are authored in YAML via Kibana's built-in editor (Analytics > Workflows).
+> **Preview** — available since Stack 9.3 and on Serverless. A full REST API exists (Technical Preview) — all requests require the `x-elastic-internal-origin: kibana` header.
 
-Workflows automate sequences of steps triggered manually, on a schedule, or by alert rules. They can search Elasticsearch, call Kibana and external APIs, send Slack/Jira notifications, branch with `if`/`foreach`, and invoke AI prompts or Agent Builder agents.
+Workflows automate sequences of steps triggered manually, on a schedule, or by alert rules. They can search Elasticsearch, call Kibana and external APIs, send Slack/Jira notifications, branch with `if`/`foreach`, and invoke AI prompts or Agent Builder agents. Workflows can also be registered as Agent Builder tools, allowing agents to trigger them during conversations.
 
-For the full YAML reference (structure, triggers, step types, data/templating, error handling, and ready-to-use recipes), see [references/WORKFLOWS.MD](references/WORKFLOWS.MD).
+For the full reference (REST API, YAML structure, step types, output paths, data/templating, error handling, and ready-to-use recipes), see [references/WORKFLOWS.MD](references/WORKFLOWS.MD).
 
 ## Ingest Pipelines
 

@@ -9,6 +9,25 @@ against. Prior releases (1.0.0, 1.1.0) used independent semantic versioning.
 
 ## [Unreleased]
 
+## [9.3.1-3] - 2026-03-13
+
+### Fixed
+
+- `if` condition syntax: corrected `{{ }}` (template) to `${{ }}` (expression) — template syntax renders to the string `"true"/"false"` which the engine does not recognise as a boolean, causing conditions to always evaluate to false
+- `ai.agent` output path: corrected from `steps.NAME.output.message` to `steps.NAME.output` (plain string, not nested)
+- Updated Step Output Paths table to reflect correct `ai.agent` output root
+
+### Added
+
+- "Known Issues" section in Workflows reference replacing "API Naming Gotcha", documenting:
+  - `lastExecution` always returns `null` bug with workaround via executions endpoint
+  - Cases `_find` tags parameter uses OR logic (undocumented) with composite-tag workaround
+  - No public API for `.workflows` system connector on alert rules, with `actions` array workaround
+
+### Changed
+
+- Reformatted markdown tables in Workflows reference for consistent column alignment
+
 ## [9.3.1-2] - 2026-03-09
 
 ### Added
@@ -105,7 +124,8 @@ against. Prior releases (1.0.0, 1.1.0) used independent semantic versioning.
 - Best practices and tips for working with Elasticsearch
 - Support for both traditional and serverless Elasticsearch deployments
 
-[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-2...HEAD
+[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-3...HEAD
+[9.3.1-3]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-2...v9.3.1-3
 [9.3.1-2]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-1...v9.3.1-2
 [9.3.1-1]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1...v9.3.1-1
 [9.3.1]: https://github.com/face0b1101/elasticsearch-skill/compare/v1.1.0...v9.3.1

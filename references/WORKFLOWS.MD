@@ -33,32 +33,32 @@ curl -s "${KIBANA_URL%/}/api/workflows/<endpoint>" \
 
 ### Workflow CRUD
 
-| Method | Endpoint | Body | Purpose |
-| --- | --- | --- | --- |
-| `POST` | `/api/workflows` | `{yaml: "..."}` | Create workflow |
-| `PUT` | `/api/workflows/{id}` | `{yaml: "..."}` or `{name: "..."}` | Update workflow |
-| `GET` | `/api/workflows/{id}` | — | Get workflow by ID |
-| `DELETE` | `/api/workflows/{id}` | — | Delete workflow |
-| `DELETE` | `/api/workflows` | `{ids: [...]}` | Bulk delete |
-| `POST` | `/api/workflows/search` | `{limit, page, query, enabled}` | Search/list workflows |
-| `POST` | `/api/workflows/{id}/clone` | — | Clone workflow |
+| Method   | Endpoint                    | Body                               | Purpose               |
+| -------- | --------------------------- | ---------------------------------- | --------------------- |
+| `POST`   | `/api/workflows`            | `{yaml: "..."}`                    | Create workflow       |
+| `PUT`    | `/api/workflows/{id}`       | `{yaml: "..."}` or `{name: "..."}` | Update workflow       |
+| `GET`    | `/api/workflows/{id}`       | —                                  | Get workflow by ID    |
+| `DELETE` | `/api/workflows/{id}`       | —                                  | Delete workflow       |
+| `DELETE` | `/api/workflows`            | `{ids: [...]}`                     | Bulk delete           |
+| `POST`   | `/api/workflows/search`     | `{limit, page, query, enabled}`    | Search/list workflows |
+| `POST`   | `/api/workflows/{id}/clone` | —                                  | Clone workflow        |
 
 ### Execution
 
-| Method | Endpoint | Body | Purpose |
-| --- | --- | --- | --- |
-| `POST` | `/api/workflows/{id}/run` | `{inputs: {...}}` | Run workflow (returns `{workflowExecutionId}`) |
-| `GET` | `/api/workflowExecutions/{execId}` | — | Execution details (status, steps, duration) |
-| `GET` | `/api/workflowExecutions/{execId}/logs` | — | Execution logs |
-| `POST` | `/api/workflowExecutions/{execId}/cancel` | — | Cancel execution |
+| Method | Endpoint                                  | Body              | Purpose                                        |
+| ------ | ----------------------------------------- | ----------------- | ---------------------------------------------- |
+| `POST` | `/api/workflows/{id}/run`                 | `{inputs: {...}}` | Run workflow (returns `{workflowExecutionId}`) |
+| `GET`  | `/api/workflowExecutions/{execId}`        | —                 | Execution details (status, steps, duration)    |
+| `GET`  | `/api/workflowExecutions/{execId}/logs`   | —                 | Execution logs                                 |
+| `POST` | `/api/workflowExecutions/{execId}/cancel` | —                 | Cancel execution                               |
 
 ### Statistics & Validation
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/workflows/stats` | Workflow counts + execution history |
-| `GET` | `/api/workflows/workflow-json-schema?loose=false` | YAML validation schema |
-| `GET` | `/api/workflows/connectors` | Available connector types |
+| Method | Endpoint                                          | Purpose                             |
+| ------ | ------------------------------------------------- | ----------------------------------- |
+| `GET`  | `/api/workflows/stats`                            | Workflow counts + execution history |
+| `GET`  | `/api/workflows/workflow-json-schema?loose=false` | YAML validation schema              |
+| `GET`  | `/api/workflows/connectors`                       | Available connector types           |
 
 ### Create Example
 
@@ -84,9 +84,15 @@ curl -s -X POST "${KIBANA_URL%/}/api/workflows/${WF_ID}/run" \
   -d '{"inputs": {"query": "error"}}'
 ```
 
-### API Naming Gotcha
+### Known Issues
 
-The `name` field in the workflow's top-level API representation comes from parsing the YAML. If the YAML fails validation (`valid: false`), the name cannot be extracted and the workflow appears as "Untitled workflow". To set the name explicitly, send a follow-up `PUT` with only `{"name": "My Workflow"}` (no `yaml` key) — the API ignores `name` when `yaml` is present in the same request body.
+**Workflow name shows "Untitled workflow"** — The `name` field in the API response comes from parsing the YAML. If the YAML fails validation (`valid: false`), the name cannot be extracted and the workflow appears as "Untitled workflow". The API ignores `yaml` when `name` is present in the same request body, so always send `yaml` and `name` in separate `PUT` requests: first `{"yaml": "..."}` to update the definition, then `{"name": "My Workflow"}` to set the display name.
+
+**`lastExecution` always returns `null`** — After a workflow executes (manually, on schedule, or via alert trigger), `GET /api/workflows/{id}` returns `lastExecution: null`. This is a confirmed bug ([elastic/kibana](https://github.com/elastic/kibana/issues)). **Workaround:** query the executions endpoint instead: `GET /api/workflowExecutions?workflowId={id}&size=1` — this returns the actual execution history with status, timestamps, and duration.
+
+**Cases `_find` tags parameter uses OR logic** — Passing multiple `tags` values to `GET /api/cases/_find?tags=foo&tags=bar` returns cases matching tag `foo` **or** tag `bar`, not both. This is undocumented in the API reference. **Workaround:** use a single composite tag for deduplication queries (e.g. `tags=icao24:abc123`) rather than combining multiple tag filters.
+
+**No public API for `.workflows` system connector on alert rules** — The `.workflows` connector is a system action. The public alerting API rejects the `system_actions` field (HTTP 400). Placing the connector in the regular `actions` array works but `group` and `frequency` fields are silently stripped — system actions do not support execution scheduling. **Workaround:** include the action in the `actions` array and accept that timing controls are not available; alternatively, link the workflow action via the Kibana UI (rule edit page > Actions).
 
 ## YAML Structure
 
@@ -194,11 +200,11 @@ triggers:
 
 All triggers provide execution context accessible in steps:
 
-| Variable | Description |
-| --- | --- |
-| `execution.id` | Unique ID for this run |
-| `execution.startedAt` | ISO timestamp when the run began |
-| `event` | Full trigger payload (alert body, schedule info, or manual params) |
+| Variable              | Description                                                        |
+| --------------------- | ------------------------------------------------------------------ |
+| `execution.id`        | Unique ID for this run                                             |
+| `execution.startedAt` | ISO timestamp when the run began                                   |
+| `event`               | Full trigger payload (alert body, schedule info, or manual params) |
 
 ## Step Types
 
@@ -389,12 +395,12 @@ Required fields: `owner` (`"cases"` | `"observability"` | `"securitySolution"`),
 
 ### Flow Control
 
-**`if`** — conditional branching:
+**`if`** — conditional branching. **Important:** Use `${{ }}` (expression syntax) for conditions, not `{{ }}` (template syntax). The `{{ }}` form renders to the *string* `"true"/"false"` which the engine does not recognise as a boolean — conditions will always evaluate to false.
 
 ```yaml
 - name: check_severity
   type: if
-  condition: "{{ event.severity == 'critical' }}"
+  condition: "${{ event.severity == 'critical' }}"
   steps:
     - name: page_oncall
       type: slack
@@ -484,12 +490,12 @@ Required fields: `owner` (`"cases"` | `"observability"` | `"securitySolution"`),
     message: "Summarise the top error patterns in the last hour from logs-*"
 ```
 
-The agent's response is available as **free text** at `steps.NAME.output.message`. There is no `outputSchema` support for `ai.agent` (unlike `ai.prompt`). For downstream routing based on agent output, instruct the agent to include a parseable marker in its response and use the `contains` operator:
+The agent's response is available as **free text** at `steps.NAME.output` (a plain string, not nested under `.message`). There is no `outputSchema` support for `ai.agent` (unlike `ai.prompt`). For downstream routing based on agent output, instruct the agent to include a parseable marker in its response and use the `contains` operator:
 
 ```yaml
 - name: route_verdict
   type: if
-  condition: "{{ steps.ask_agent.output.message contains '[CRITICAL]' }}"
+  condition: "${{ steps.ask_agent.output contains '[CRITICAL]' }}"
   steps:
     - name: escalate
       type: slack
@@ -502,15 +508,15 @@ The agent's response is available as **free text** at `steps.NAME.output.message
 
 Different step types expose their output at different paths. Getting this wrong is the most common cause of "workflow succeeded but returned null".
 
-| Step Type | Output Root | Common Paths |
-| --- | --- | --- |
-| `elasticsearch.search` | `steps.NAME.output` | `.output.hits.hits`, `.output.hits.total.value` |
-| `elasticsearch.request` | `steps.NAME.output` | `.output.hits.hits`, `.output.aggregations` |
-| `http` | `steps.NAME.output.data` | `.output.data.results`, `.output.data.field` |
-| `kibana.request` | `steps.NAME.output` | `.output.cases`, `.output.total` |
-| `kibana.createCase` | `steps.NAME.output` | `.output.id`, `.output.version` |
-| `ai.prompt` + `outputSchema` | `steps.NAME.output` | `.output.<field>` (structured per schema) |
-| `ai.agent` | `steps.NAME.output.message` | Free text only (string) |
+| Step Type                    | Output Root              | Common Paths                                    |
+| ---------------------------- | ------------------------ | ----------------------------------------------- |
+| `elasticsearch.search`       | `steps.NAME.output`      | `.output.hits.hits`, `.output.hits.total.value` |
+| `elasticsearch.request`      | `steps.NAME.output`      | `.output.hits.hits`, `.output.aggregations`     |
+| `http`                       | `steps.NAME.output.data` | `.output.data.results`, `.output.data.field`    |
+| `kibana.request`             | `steps.NAME.output`      | `.output.cases`, `.output.total`                |
+| `kibana.createCase`          | `steps.NAME.output`      | `.output.id`, `.output.version`                 |
+| `ai.prompt` + `outputSchema` | `steps.NAME.output`      | `.output.<field>` (structured per schema)       |
+| `ai.agent`                   | `steps.NAME.output`      | Free text only (string)                         |
 
 > Both `elasticsearch.search` and `elasticsearch.request` expose the ES response body directly at `.output`. The output structure is identical — the difference is that `elasticsearch.search` has stricter parameter validation (e.g. sort syntax) while `elasticsearch.request` passes the body through verbatim.
 
@@ -518,17 +524,17 @@ Different step types expose their output at different paths. Getting this wrong 
 
 ### Accessing Data
 
-| Syntax | Source | Example |
-| --- | --- | --- |
+| Syntax                | Source                    | Example                                           |
+| --------------------- | ------------------------- | ------------------------------------------------- |
 | `steps.<name>.output` | Output of a previous step | `{{ steps.find_errors.output.hits.total.value }}` |
-| `steps.<name>.error` | Error from a failed step | `{{ steps.api_call.error.message }}` |
-| `consts.<name>` | Workflow constants | `{{ consts.indexName }}` |
-| `inputs.<name>` | Trigger-time parameters | `{{ inputs.environment }}` |
-| `event` | Trigger payload | `{{ event.severity }}` |
-| `execution.id` | Current run ID | `{{ execution.id }}` |
-| `execution.startedAt` | Run start time | `{{ execution.startedAt }}` |
-| `foreach.item` | Current item in a loop | `{{ foreach.item._source.host }}` |
-| `workflow.name` | Workflow name | `{{ workflow.name }}` |
+| `steps.<name>.error`  | Error from a failed step  | `{{ steps.api_call.error.message }}`              |
+| `consts.<name>`       | Workflow constants        | `{{ consts.indexName }}`                          |
+| `inputs.<name>`       | Trigger-time parameters   | `{{ inputs.environment }}`                        |
+| `event`               | Trigger payload           | `{{ event.severity }}`                            |
+| `execution.id`        | Current run ID            | `{{ execution.id }}`                              |
+| `execution.startedAt` | Run start time            | `{{ execution.startedAt }}`                       |
+| `foreach.item`        | Current item in a loop    | `{{ foreach.item._source.host }}`                 |
+| `workflow.name`       | Workflow name             | `{{ workflow.name }}`                             |
 
 ### Template Expressions
 
@@ -804,7 +810,7 @@ steps:
 
   - name: route_alert
     type: if
-    condition: "{{ steps.classify.output.priority == 'p1' }}"
+    condition: "${{ steps.classify.output.priority == 'p1' }}"
     steps:
       - name: page_oncall
         type: slack
@@ -861,7 +867,7 @@ steps:
     steps:
       - name: check_service
         type: if
-        condition: "{{ foreach.item._source.service.name == 'payments' }}"
+        condition: "${{ foreach.item._source.service.name == 'payments' }}"
         steps:
           - name: urgent_notify
             type: slack

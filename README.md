@@ -1,6 +1,6 @@
 # Elasticsearch Skill
 
-Markdown-based skill that teaches AI coding assistants (Cursor, Claude Code etc.) and desktop apps (Claude Desktop) how to interact with Elasticsearch and Kibana via REST/curl — no SDK or MCP required.
+Agent Skill that teaches AI assistants how to interact with Elasticsearch and Kibana via REST/curl — no SDK or MCP required.
 
 ## What's in it?
 
@@ -74,7 +74,31 @@ The assistant reads the skill, writes the `curl` commands, runs them, and explai
 
 ## Installation
 
-### Claude Desktop (no git required)
+### Personal skill (all projects)
+
+Clone into the shared skills directory:
+
+```bash
+git clone https://github.com/face0b1101/elasticsearch-skill.git \
+  ~/.agents/skills/elasticsearch
+```
+
+Compatible agents (Cursor, Claude Code, VS Code, Codex, and others) scan `~/.agents/skills/` automatically per the [Agent Skills convention](https://agentskills.io/client-implementation/adding-skills-support).
+
+### Project skill (one repo)
+
+From your project root:
+
+```bash
+git clone https://github.com/face0b1101/elasticsearch-skill.git /tmp/elasticsearch-skill
+mkdir -p .agents/skills/elasticsearch
+cp /tmp/elasticsearch-skill/SKILL.md .agents/skills/elasticsearch/
+cp -r /tmp/elasticsearch-skill/references .agents/skills/elasticsearch/
+```
+
+Commit the `.agents/skills/elasticsearch/` directory so your team gets it too.
+
+### Claude Desktop
 
 1. Download the zip from the [latest release](https://github.com/face0b1101/elasticsearch-skill/releases/latest)
 2. In Claude, go to **Settings > Capabilities** and ensure **Code execution** is enabled
@@ -82,48 +106,9 @@ The assistant reads the skill, writes the `curl` commands, runs them, and explai
 
 Claude will automatically use the skill when your prompt involves Elasticsearch. See [Using Skills in Claude](https://support.claude.com/en/articles/12512180-using-skills-in-claude) for more detail.
 
-### Cursor
+### Verify
 
-Clone into the Cursor skills directory:
-
-```bash
-git clone https://github.com/face0b1101/elasticsearch-skill.git \
-  ~/.cursor/skills/elasticsearch
-```
-
-Cursor loads skills from `~/.cursor/skills/` automatically.
-
-### Claude Code — personal skill (all projects)
-
-```bash
-git clone https://github.com/face0b1101/elasticsearch-skill.git /tmp/elasticsearch-skill
-mkdir -p ~/.claude/skills/elasticsearch
-cp /tmp/elasticsearch-skill/SKILL.md ~/.claude/skills/elasticsearch/
-cp -r /tmp/elasticsearch-skill/references ~/.claude/skills/elasticsearch/
-```
-
-### Claude Code — project skill (one repo)
-
-From your project root:
-
-```bash
-git clone https://github.com/face0b1101/elasticsearch-skill.git /tmp/elasticsearch-skill
-mkdir -p .claude/skills/elasticsearch
-cp /tmp/elasticsearch-skill/SKILL.md .claude/skills/elasticsearch/
-cp -r /tmp/elasticsearch-skill/references .claude/skills/elasticsearch/
-```
-
-Commit the `.claude/skills/elasticsearch/` directory so your team gets it too.
-
-### Verify (Claude Code)
-
-Restart Claude Code, then run:
-
-```text
-/skills
-```
-
-You should see `elasticsearch` in the list.
+After installing, check that your agent can see the skill. In Claude Code, run `/skills` and confirm `elasticsearch` appears in the list.
 
 ## Why a skill and not MCP?
 

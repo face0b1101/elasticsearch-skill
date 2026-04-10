@@ -15,7 +15,7 @@ Workflows is a Kibana feature (Preview since Stack 9.3, Preview on Serverless) f
 
 While Workflows is in **Technical Preview**, all API requests require an additional header:
 
-```
+```sh
 x-elastic-internal-origin: kibana
 ```
 
@@ -45,12 +45,13 @@ curl -s "${KIBANA_URL%/}/api/workflows/<endpoint>" \
 
 ### Execution
 
-| Method | Endpoint                                  | Body              | Purpose                                        |
-| ------ | ----------------------------------------- | ----------------- | ---------------------------------------------- |
-| `POST` | `/api/workflows/{id}/run`                 | `{inputs: {...}}` | Run workflow (returns `{workflowExecutionId}`) |
-| `GET`  | `/api/workflowExecutions/{execId}`        | —                 | Execution details (status, steps, duration)    |
-| `GET`  | `/api/workflowExecutions/{execId}/logs`   | —                 | Execution logs                                 |
-| `POST` | `/api/workflowExecutions/{execId}/cancel` | —                 | Cancel execution                               |
+| Method | Endpoint                                  | Body              | Purpose                                         |
+| ------ | ----------------------------------------- | ----------------- | ----------------------------------------------- |
+| `POST` | `/api/workflows/{id}/run`                 | `{inputs: {...}}` | Run workflow (returns `{workflowExecutionId}`)  |
+| `POST` | `/api/workflows/{id}/test`                | `{inputs: {...}}` | Test/dry-run (identical to run, marked as test) |
+| `GET`  | `/api/workflowExecutions/{execId}`        | —                 | Execution details (status, steps, duration)     |
+| `GET`  | `/api/workflowExecutions/{execId}/logs`   | —                 | Execution logs                                  |
+| `POST` | `/api/workflowExecutions/{execId}/cancel` | —                 | Cancel execution                                |
 
 ### Statistics & Validation
 
@@ -84,6 +85,19 @@ curl -s -X POST "${KIBANA_URL%/}/api/workflows/${WF_ID}/run" \
   -d '{"inputs": {"query": "error"}}'
 ```
 
+### Test Example
+
+Identical to `/run` but the execution is marked as a test run.
+
+```bash
+curl -s -X POST "${KIBANA_URL%/}/api/workflows/${WF_ID}/test" \
+  -H "Authorization: ApiKey $(printenv ES_API_KEY)" \
+  -H "Content-Type: application/json" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
+  -d '{"inputs": {"query": "error"}}'
+```
+
 ### Known Issues
 
 **Workflow name shows "Untitled workflow"** — The `name` field in the API response comes from parsing the YAML. If the YAML fails validation (`valid: false`), the name cannot be extracted and the workflow appears as "Untitled workflow". The API ignores `yaml` when `name` is present in the same request body, so always send `yaml` and `name` in separate `PUT` requests: first `{"yaml": "..."}` to update the definition, then `{"name": "My Workflow"}` to set the display name.
@@ -93,6 +107,31 @@ curl -s -X POST "${KIBANA_URL%/}/api/workflows/${WF_ID}/run" \
 **Cases `_find` tags parameter uses OR logic** — Passing multiple `tags` values to `GET /api/cases/_find?tags=foo&tags=bar` returns cases matching tag `foo` **or** tag `bar`, not both. This is undocumented in the API reference. **Workaround:** use a single composite tag for deduplication queries (e.g. `tags=icao24:abc123`) rather than combining multiple tag filters.
 
 **No public API for `.workflows` system connector on alert rules** — The `.workflows` connector is a system action. The public alerting API rejects the `system_actions` field (HTTP 400). Placing the connector in the regular `actions` array works but `group` and `frequency` fields are silently stripped — system actions do not support execution scheduling. **Workaround:** include the action in the `actions` array and accept that timing controls are not available; alternatively, link the workflow action via the Kibana UI (rule edit page > Actions).
+
+**Workflows cannot self-trigger** — No built-in step type can re-invoke the current workflow. For recursive patterns (e.g. parent-child resource processing), use an external HTTP service that triggers the workflow via the Kibana API. Keep Kibana credentials in the external service, not in workflow YAML.
+
+```python
+async with httpx.AsyncClient() as client:
+    response = await client.post(
+        f"{kibana_url}/api/workflows/{workflow_id}/run",
+        json={"inputs": {"job_id": job_id, "resource_id": resource_id}},
+        headers={
+            "Authorization": f"ApiKey {api_key}",
+            "kbn-xsrf": "true",
+            "x-elastic-internal-origin": "kibana",
+        },
+    )
+```
+
+**Stale reads from `elasticsearch.search`** — The `elasticsearch.search` step can return stale data even after a prior step wrote with `?refresh=wait_for`. **Workaround:** use `elasticsearch.request` with `_search` or `_count` instead. For extra safety, add an explicit refresh step before the critical read:
+
+```yaml
+- name: refresh_index
+  type: elasticsearch.request
+  with:
+    method: POST
+    path: "/my-index/_refresh"
+```
 
 ## YAML Structure
 
@@ -395,7 +434,9 @@ Required fields: `owner` (`"cases"` | `"observability"` | `"securitySolution"`),
 
 ### Flow Control
 
-**`if`** — conditional branching. **Important:** Use `${{ }}` (expression syntax) for conditions, not `{{ }}` (template syntax). The `{{ }}` form renders to the *string* `"true"/"false"` which the engine does not recognise as a boolean — conditions will always evaluate to false.
+**`if`** — conditional branching. Conditions support two forms:
+
+**Boolean expressions** — use `${{ }}` for dynamic comparisons. **Important:** do not use `{{ }}` (template syntax) here; it renders to the *string* `"true"/"false"` which the engine does not recognise as a boolean.
 
 ```yaml
 - name: check_severity
@@ -414,7 +455,27 @@ Required fields: `owner` (`"cases"` | `"observability"` | `"securitySolution"`),
         message: "Non-critical alert: {{ event.rule.name }}"
 ```
 
-**`foreach`** — loop over an array. The current item is `{{ foreach.item }}`:
+**KQL string expressions** — use a plain string for field equality, ranges, wildcards, and logical operators. `{{ }}` templates can inject dynamic values into the KQL string.
+
+```yaml
+condition: "event.severity: critical"
+condition: "steps.search.output.hits.total.value > 5"
+condition: "status: active and role: admin"
+condition: "status: active and (role: admin or role: moderator)"
+condition: "user.name: J*"
+condition: "{{ steps.fetchData.output.status }}: completed"
+```
+
+**`foreach`** — loop over an array. The engine provides context variables during iteration:
+
+| Variable        | Description                        |
+| --------------- | ---------------------------------- |
+| `foreach.item`  | Current item in the iteration      |
+| `foreach.index` | Zero-based index of current item   |
+| `foreach.total` | Total number of items in the array |
+| `foreach.items` | The complete array being iterated  |
+
+Field names containing dots require bracket notation: `{{ foreach.item['service.name'] }}`.
 
 ```yaml
 - name: process_hits
@@ -424,7 +485,7 @@ Required fields: `owner` (`"cases"` | `"observability"` | `"securitySolution"`),
     - name: log_hit
       type: console
       with:
-        message: "Processing: {{ foreach.item._source.message }}"
+        message: "Processing {{ foreach.index | plus: 1 }}/{{ foreach.total }}: {{ foreach.item._source.message }}"
     - name: update_status
       type: elasticsearch.update
       with:
@@ -534,6 +595,8 @@ Different step types expose their output at different paths. Getting this wrong 
 | `execution.id`        | Current run ID            | `{{ execution.id }}`                              |
 | `execution.startedAt` | Run start time            | `{{ execution.startedAt }}`                       |
 | `foreach.item`        | Current item in a loop    | `{{ foreach.item._source.host }}`                 |
+| `foreach.index`       | Zero-based loop index     | `{{ foreach.index }}`                             |
+| `foreach.total`       | Total items in the loop   | `{{ foreach.total }}`                             |
 | `workflow.name`       | Workflow name             | `{{ workflow.name }}`                             |
 
 ### Template Expressions

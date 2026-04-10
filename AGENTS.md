@@ -60,35 +60,68 @@ Only these files belong in the zip:
 
 Do **not** include `AGENTS.md`, dotfiles (`.gitignore`, `.markdownlint.json`), or any other development artefact.
 
+### Trigger phrase: "release-ready"
+
+When the user says **"release-ready"**, execute the full release workflow below
+end-to-end without further prompting. Determine the version bump automatically:
+
+- **Skill-only fix** (e.g. v9.3.1-1, v9.3.1-2) - fixes, corrections,
+  formatting, clarifications that don't correspond to a new stack version.
+- **Stack-aligned bump** (e.g. v9.4.0) - skill updated and tested against a
+  new Elastic Stack version.
+
 ### Release workflow
 
-1. **Update `CHANGELOG.md`** — move items from `[Unreleased]` into a new version heading with today's date. Follow [Keep a Changelog](https://keepachangelog.com/) format.
+1. **Determine version.** Read `CHANGELOG.md` `[Unreleased]` entries. If the
+   changes include a stack version bump (updated "Tested against" line), use
+   the new stack version. Otherwise append or increment the suffix on the
+   current stack-aligned version (e.g. v9.3.1 -> v9.3.1-1 -> v9.3.1-2).
 
-2. **Commit** the changelog (and any other release-ready changes) with message `release: vX.Y.Z — <summary>`.
+2. **Update `CHANGELOG.md`.** Move items from `[Unreleased]` into a new
+   version heading with today's date. Follow
+   [Keep a Changelog](https://keepachangelog.com/) format. Leave an empty
+   `## [Unreleased]` section at the top.
 
-3. **Tag** with an annotated tag: `git tag -a vX.Y.Z -m "vX.Y.Z"`.
+3. **Commit** all pending changes with message
+   `release: vX.Y.Z - <one-line summary>`.
 
-4. **Push** commit and tag: `git push origin main --tags`.
-
-5. **Build the zip** in `/tmp` (not in the repo):
+4. **Tag** with an annotated tag:
 
    ```bash
-   zip -r /tmp/elasticsearch-skill-vX.Y.Z.zip SKILL.md references/ README.md LICENCE CHANGELOG.md
+   git tag -a vX.Y.Z -m "vX.Y.Z"
    ```
 
-6. **Create the GitHub Release** with the zip attached:
+5. **Push** commit and tag:
 
    ```bash
-   gh release create vX.Y.Z /tmp/elasticsearch-skill-vX.Y.Z.zip \
+   git push origin main --tags
+   ```
+
+6. **Build the zip** in `/tmp` (not in the repo). Use `zip -j` for the
+   root files, then `zip -r` to append directories with real content:
+
+   ```bash
+   zip -j /tmp/elasticsearch-skill-vX.Y.Z.zip \
+     SKILL.md README.md LICENCE CHANGELOG.md
+   if [ -d "references" ] && [ "$(find references -type f ! -name '.gitkeep' | head -1)" ]; then
+     zip -r /tmp/elasticsearch-skill-vX.Y.Z.zip references -x '*/.gitkeep'
+   fi
+   ```
+
+7. **Create the GitHub Release** with the zip attached:
+
+   ```bash
+   gh release create vX.Y.Z \
+     /tmp/elasticsearch-skill-vX.Y.Z.zip \
      --title "vX.Y.Z" \
-     --notes "<release notes from CHANGELOG>"
+     --notes "$(awk '/^## \['"vX.Y.Z"'\]/{found=1; next} /^## \[/{found=0} found' CHANGELOG.md)"
    ```
 
 ### Important notes
 
 - The `releases/latest` URL in `README.md` resolves automatically — no need to update it.
 - GitHub adds "Source code" archives to every release by default; these cannot be removed. The uploaded zip is the intended download for end users.
-- Version numbers track the Elastic Stack version the skill is tested against (e.g. `v9.3.1` means tested against Elastic Stack 9.3.1). Skill-only fixes for the same stack version append a suffix (e.g. `v9.3.1-1`). Prior releases used independent semantic versioning (v1.0.0, v1.1.0).
+- Version numbers track the Elastic Stack version the skill is tested against (e.g. `v9.3.1` means tested against Elastic Stack 9.3.1). Skill-only fixes for the same stack version append a suffix (e.g. `v9.3.1-1`).
 
 ______________________________________________________________________
 

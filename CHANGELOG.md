@@ -9,6 +9,24 @@ against. Prior releases (1.0.0, 1.1.0) used independent semantic versioning.
 
 ## [Unreleased]
 
+## [9.3.1-4] - 2026-04-10
+
+### Added
+
+- Workflow `/test` endpoint documentation (dry-run, identical to `/run` but marked as test)
+- KQL string expression syntax for `if` conditions: field equality, ranges, wildcards, and logical operators
+- `foreach` context variables: `foreach.index` (zero-based), `foreach.total`, `foreach.items`
+- Bracket notation for dotted field names in foreach: `{{ foreach.item['service.name'] }}`
+- Known issue: workflows cannot self-trigger (with external HTTP service workaround)
+- Known issue: stale reads from `elasticsearch.search` step (with `elasticsearch.request` workaround and explicit refresh step)
+- "release-ready" trigger phrase in AGENTS.md for automated end-to-end release workflow
+
+### Changed
+
+- Updated `foreach` example to demonstrate `foreach.index` and `foreach.total` usage
+- Updated Template Variables table with `foreach.index` and `foreach.total` entries
+- Improved release workflow in AGENTS.md: automated version determination, `zip -j` for flat root files, automated release notes extraction from CHANGELOG
+
 ## [9.3.1-3] - 2026-03-13
 
 ### Fixed
@@ -124,7 +142,8 @@ against. Prior releases (1.0.0, 1.1.0) used independent semantic versioning.
 - Best practices and tips for working with Elasticsearch
 - Support for both traditional and serverless Elasticsearch deployments
 
-[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-3...HEAD
+[unreleased]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-4...HEAD
+[9.3.1-4]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-3...v9.3.1-4
 [9.3.1-3]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-2...v9.3.1-3
 [9.3.1-2]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1-1...v9.3.1-2
 [9.3.1-1]: https://github.com/face0b1101/elasticsearch-skill/compare/v9.3.1...v9.3.1-1
